@@ -1,0 +1,153 @@
+# CryptoTracker — Live Crypto Market Dashboard
+
+A production-grade cryptocurrency market dashboard built with **React 18**, **Vite**, **Tailwind CSS 3**, and **Recharts**. Displays real-time market data for the top 100 cryptocurrencies using the [CoinGecko API](https://www.coingecko.com/).
+
+![Dashboard Preview](https://img.shields.io/badge/Status-Production_Ready-16c784?style=for-the-badge)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3-38BDF8?style=for-the-badge&logo=tailwindcss)
+
+---
+
+## ✨ Features
+
+### Core
+- **Top 100 Cryptocurrencies** — Sorted by market cap, with live prices
+- **Multi-Currency Support** — Switch between USD ($), INR (₹), and EUR (€)
+- **Instant Search** — Client-side search by coin name or symbol (debounced, lag-free)
+- **Responsive Design** — Fully optimized for Mobile, Tablet, and Desktop
+- **Global Market Stats Bar** — Coins, Exchanges, Market Cap, 24h Volume, BTC/ETH Dominance
+
+### Dashboard Widgets
+- **🔥 Trending Coins** — Top trending cryptocurrencies (last 24h)
+- **🚀 Top Gainers** — 5 best performers by 24h change
+- **📉 Top Losers** — 5 worst performers by 24h change
+
+### Data Table
+For each asset:
+- Logo, Name, Symbol
+- Current Price (multi-currency)
+- 1h / 24h / 7d Price Change (color-coded green/red)
+- Market Capitalization
+- 24h Trading Volume
+- 7-day Sparkline Chart
+
+### Coin Detail Modal
+Click any coin to view:
+- Current price with 24h change badge
+- 24h High/Low with visual position bar
+- Market Cap, Volume, Circulating/Total/Max Supply
+- All-Time High / All-Time Low with dates
+- Interactive price chart with 7D / 30D / 90D toggles
+- X/Y axis with formatted values and hover tooltip
+
+### UI/UX
+- **Dark/Light Mode** — Toggle with localStorage persistence
+- **Auto-Refresh** — 60-second polling with live indicator
+- **Skeleton Loaders** — Beautiful loading states
+- **Error Handling** — Friendly error messages with retry buttons
+- **Keyboard Shortcuts** — Ctrl+K to search, Escape to close
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | React 18 (functional components + hooks) |
+| Build Tool | Vite |
+| Styling | Tailwind CSS 3 |
+| Charts | Recharts |
+| HTTP | Native Fetch API |
+| State | React Context + Hooks |
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── components/
+│   ├── common/           # Reusable: Skeleton, ErrorState, SearchBar, ThemeToggle
+│   ├── dashboard/        # GlobalStatsBar, CoinTable, CoinTableRow, SparklineChart,
+│   │                     # TrendingCoins, GainersLosers
+│   └── modal/            # CoinModal, PriceChart
+├── context/
+│   └── ThemeContext.jsx   # Dark/Light mode context + provider
+├── hooks/
+│   ├── useCoinsMarket.js  # Coins market data + auto-refresh
+│   ├── useGlobalData.js   # Global market stats
+│   ├── useTrending.js     # Trending coins
+│   └── useCoinChart.js    # Historical chart data
+├── services/
+│   └── api.js             # Centralized CoinGecko API calls
+├── utils/
+│   └── formatters.js      # Currency, number, date formatters
+├── App.jsx                # Root component + layout
+├── main.jsx               # Entry point
+└── index.css              # Tailwind directives + global styles
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 16+ and npm
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd Crypto-Currency
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+### Production Build
+
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## ⚡ Performance Optimizations
+
+| Technique | Application |
+|---|---|
+| `React.memo` | CoinTableRow, SparklineChart, all section components |
+| `useMemo` | Filtered coin list, gainers/losers computation |
+| `useCallback` | Event handlers, search callback |
+| Debounced Search | 300ms debounce on search input |
+| Data Sampling | Sparkline data sampled (168 → 40 points) |
+| Lazy Image Loading | `loading="lazy"` on all coin logos |
+| Proper Keys | `coin.id` used as keys throughout |
+
+---
+
+## 📊 API Reference
+
+All data comes from the [CoinGecko Free API](https://www.coingecko.com/en/api):
+
+| Endpoint | Purpose |
+|---|---|
+| `/coins/markets` | Top 100 coins with prices, sparkline, % changes |
+| `/global` | Total market cap, volume, dominance |
+| `/search/trending` | Trending coins (last 24h) |
+| `/coins/{id}/market_chart` | Historical price data for charts |
+
+**Rate Limits:** 30 calls/minute, 10,000 calls/month (free tier)
+
+---
+
+## 📝 License
+
+MIT License — feel free to use this project for learning, portfolios, or production.
