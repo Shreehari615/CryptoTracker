@@ -23,13 +23,53 @@ A production-grade cryptocurrency market dashboard built with **React 18**, **Vi
 - **📉 Top Losers** — 5 worst performers by 24h change
 
 ### Data Table
-For each asset:
-- Logo, Name, Symbol
-- Current Price (multi-currency)
-- 1h / 24h / 7d Price Change (color-coded green/red)
-- Market Capitalization
-- 24h Trading Volume
+CoinGecko-style market table with sortable columns:
+- Star (watchlist), Rank, Logo, Name + Symbol (inline)
+- Current Price (multi-currency, bold)
+- 1h / 24h / 7d Price Change (color-coded green/red with arrows)
+- 24h Trading Volume (sortable)
+- Market Capitalization (sortable)
 - 7-day Sparkline Chart
+- Long coin names wrap naturally (no truncation)
+- Sticky columns (Star, Rank, Coin) on horizontal scroll
+
+### ⭐ Watchlist
+- **Add/Remove coins** — Click the star icon on any coin to watchlist it
+- **Persistent storage** — Watchlist saved to `localStorage`, persists across sessions
+- **Dedicated tab** — View only watchlisted coins in the "Watchlist" tab
+- **Empty state** — Friendly message with "Browse Market" call-to-action
+
+### 🛠 Tools Section
+A suite of crypto financial calculators accessible via the "Tools" tab:
+
+#### 💱 Crypto Converter
+- Convert between any two cryptocurrencies
+- Real-time conversion rates from live market data
+- Swap button to quickly reverse conversion
+
+#### 📊 Coin Comparison
+- Side-by-side comparison of two cryptocurrencies
+- Compare price, market cap, volume, supply, and price changes
+- Visual comparison cards with color-coded differences
+
+#### 📈 Profit/Loss Calculator
+- Enter coin, buy price, and quantity to calculate P/L
+- **Auto-filled current market price** from live API data
+- Shows: Total Invested, Current Value, Profit/Loss, Return %
+- Green/red themed results for profit/loss visualization
+- Helper text: "Enter the market price of this coin at the time you invested"
+
+#### 🔮 Investment Projection
+- Project future portfolio value based on initial investment
+- Uses recent 7-day market trend to extrapolate returns
+- Time horizons: 1 month, 3 months, 6 months, 1 year, 2 years
+- Shows projected coins bought, projected value, and estimated gain
+
+#### 📅 SIP / DCA Calculator
+- Simulate systematic monthly investments (Dollar-Cost Averaging)
+- Durations: 3 months, 6 months, 1 year, 2 years, 5 years
+- Shows: Total invested, coins accumulated, projected value, gain %
+- Demonstrates the power of DCA over lump-sum investing
 
 ### Coin Detail Modal
 Click any coin to view:
@@ -42,10 +82,12 @@ Click any coin to view:
 
 ### UI/UX
 - **Dark/Light Mode** — Toggle with localStorage persistence
-- **Auto-Refresh** — 60-second polling with live indicator
-- **Skeleton Loaders** — Beautiful loading states
+- **Auto-Refresh** — 60-second polling with live countdown indicator
+- **Skeleton Loaders** — Beautiful loading states for all sections
 - **Error Handling** — Friendly error messages with retry buttons
-- **Keyboard Shortcuts** — Ctrl+K to search, Escape to close
+- **Keyboard Shortcuts** — Ctrl+K to search, Escape to close modals
+- **Full-width Layout** — Edge-to-edge content, no wasted space
+- **Consistent Alignment** — All table columns perfectly aligned header-to-data
 
 ---
 
@@ -57,8 +99,10 @@ Click any coin to view:
 | Build Tool | Vite |
 | Styling | Tailwind CSS 3 |
 | Charts | Recharts |
+| Icons | Lucide React |
 | HTTP | Native Fetch API |
 | State | React Context + Hooks |
+| Storage | localStorage (watchlist, theme) |
 
 ---
 
@@ -70,19 +114,22 @@ src/
 │   ├── common/           # Reusable: Skeleton, ErrorState, SearchBar, ThemeToggle
 │   ├── dashboard/        # GlobalStatsBar, CoinTable, CoinTableRow, SparklineChart,
 │   │                     # TrendingCoins, GainersLosers
-│   └── modal/            # CoinModal, PriceChart
+│   ├── modal/            # CoinModal, PriceChart
+│   └── tools/            # ToolsSection, CryptoConverter, CoinComparison,
+│                         # ProfitCalculator, InvestmentProjection, SIPCalculator
 ├── context/
 │   └── ThemeContext.jsx   # Dark/Light mode context + provider
 ├── hooks/
 │   ├── useCoinsMarket.js  # Coins market data + auto-refresh
 │   ├── useGlobalData.js   # Global market stats
 │   ├── useTrending.js     # Trending coins
-│   └── useCoinChart.js    # Historical chart data
+│   ├── useCoinChart.js    # Historical chart data
+│   └── useWatchlist.js    # Watchlist with localStorage persistence
 ├── services/
 │   └── api.js             # Centralized CoinGecko API calls
 ├── utils/
 │   └── formatters.js      # Currency, number, date formatters
-├── App.jsx                # Root component + layout
+├── App.jsx                # Root component + tab navigation + layout
 ├── main.jsx               # Entry point
 └── index.css              # Tailwind directives + global styles
 ```
@@ -124,12 +171,13 @@ npm run preview
 | Technique | Application |
 |---|---|
 | `React.memo` | CoinTableRow, SparklineChart, all section components |
-| `useMemo` | Filtered coin list, gainers/losers computation |
-| `useCallback` | Event handlers, search callback |
+| `useMemo` | Filtered coin list, gainers/losers, sorted coins |
+| `useCallback` | Event handlers, search callback, watchlist toggle |
 | Debounced Search | 300ms debounce on search input |
-| Data Sampling | Sparkline data sampled (168 → 40 points) |
+| Data Sampling | Sparkline data sampled (168 → 50 points) |
 | Lazy Image Loading | `loading="lazy"` on all coin logos |
 | Proper Keys | `coin.id` used as keys throughout |
+| Tab-based Rendering | Only active tab content is rendered |
 
 ---
 
@@ -145,6 +193,18 @@ All data comes from the [CoinGecko Free API](https://www.coingecko.com/en/api):
 | `/coins/{id}/market_chart` | Historical price data for charts |
 
 **Rate Limits:** 30 calls/minute, 10,000 calls/month (free tier)
+
+---
+
+## 🗂 Navigation
+
+The dashboard has 3 main tabs:
+
+| Tab | Description |
+|---|---|
+| **Market** | Trending coins, Gainers/Losers, full market table |
+| **Watchlist** | Your starred coins in a filtered table view |
+| **Tools** | Financial calculators (Converter, Compare, P/L, Projection, SIP) |
 
 ---
 
