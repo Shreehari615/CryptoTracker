@@ -29,10 +29,11 @@ const CoinTable = React.memo(function CoinTable({
   onRefresh,
   onSelectCoin,
   searchQuery,
+  isWatchlisted,
+  onToggleWatchlist,
 }) {
-  // --- Sort State ---
-  const [sortKey, setSortKey] = useState(null);       // null | 'price' | 'change24h' | 'marketCap'
-  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
+  // --- Sort State (single object to avoid React batching issues) ---
+  const [sort, setSort] = useState({ key: null, dir: 'desc' });
 
   // --- Countdown Timer State ---
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
@@ -42,13 +43,11 @@ const CoinTable = React.memo(function CoinTable({
   useEffect(() => {
     setCountdown(REFRESH_INTERVAL);
 
-    // Clear any existing interval
     if (countdownRef.current) clearInterval(countdownRef.current);
 
-    // Start counting down every second
     countdownRef.current = setInterval(() => {
       setCountdown((prev) => {
-        if (prev <= 1) return REFRESH_INTERVAL; // Reset at 0
+        if (prev <= 1) return REFRESH_INTERVAL;
         return prev - 1;
       });
     }, 1000);
@@ -58,49 +57,54 @@ const CoinTable = React.memo(function CoinTable({
     };
   }, [lastUpdated]);
 
-  // --- Sort Handler (fixed: avoids nested setState batching) ---
+  // --- Sort Handler (single setState, no batching issues) ---
   const handleSort = useCallback((key) => {
-    setSortKey((prevKey) => {
-      if (prevKey === key) {
-        // Same column clicked — toggle direction
-        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-        return key;
-      } else {
-        // Different column — reset to descending
-        setSortDirection('desc');
-        return key;
+    setSort((prev) => {
+      if (prev.key === key) {
+        // Same column — toggle asc/desc
+        return { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' };
       }
+      // New column — default descending
+      return { key, dir: 'desc' };
     });
+  }, []);
+
+  // --- Reset sort (used by refresh button) ---
+  const resetSort = useCallback(() => {
+    setSort({ key: null, dir: 'desc' });
   }, []);
 
   // --- Sorted Coins (memoized) ---
   const sortedCoins = useMemo(() => {
-    if (!sortKey || !coins.length) return coins;
+    if (!sort.key || !coins.length) return coins;
 
     const keyMap = {
       price: 'current_price',
+      change1h: 'price_change_percentage_1h_in_currency',
       change24h: 'price_change_percentage_24h_in_currency',
+      change7d: 'price_change_percentage_7d_in_currency',
+      volume: 'total_volume',
       marketCap: 'market_cap',
     };
 
-    const field = keyMap[sortKey];
+    const field = keyMap[sort.key];
     if (!field) return coins;
 
     return [...coins].sort((a, b) => {
       const aVal = a[field] ?? 0;
       const bVal = b[field] ?? 0;
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      return sort.dir === 'asc' ? aVal - bVal : bVal - aVal;
     });
-  }, [coins, sortKey, sortDirection]);
+  }, [coins, sort]);
 
-  // --- Sort Icon Helper ---
+  // --- Sort Icon Helper (active = inline, inactive = absolute so no space taken) ---
   const renderSortIcon = (key) => {
-    if (sortKey !== key) {
-      return <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 ml-1 opacity-0 group-hover/th:opacity-100 transition-opacity" />;
+    if (sort.key !== key) {
+      return null; // No icon when not sorting — hover effect handled by CSS
     }
-    return sortDirection === 'asc'
-      ? <ArrowUp size={12} className="text-indigo-500 ml-1" />
-      : <ArrowDown size={12} className="text-indigo-500 ml-1" />;
+    return sort.dir === 'asc'
+      ? <ArrowUp size={12} className="inline-block text-indigo-500 ml-1 align-middle" />
+      : <ArrowDown size={12} className="inline-block text-indigo-500 ml-1 align-middle" />;
   };
 
   // Format lastUpdated time as HH:MM:SS
@@ -126,9 +130,9 @@ const CoinTable = React.memo(function CoinTable({
     );
   }
 
-  // Sortable header class
+  // Sortable header class — text-right aligns both text and inline sort icon to right edge
   const sortableThClass = `py-3 px-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 
-                            uppercase tracking-wider cursor-pointer select-none 
+                            uppercase tracking-wider cursor-pointer select-none whitespace-nowrap
                             hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group/th`;
 
   return (
@@ -163,13 +167,13 @@ const CoinTable = React.memo(function CoinTable({
                 Updated at {formattedTime} • Refresh in <span className="font-semibold text-gray-700 dark:text-gray-300 tabular-nums">{countdown}s</span>
               </span>
               <span className="sm:hidden tabular-nums">{countdown}s</span>
-              {/* Manual refresh button */}
+              {/* Manual refresh button — also resets sort to default */}
               <button
-                onClick={onRefresh}
+                onClick={() => { resetSort(); onRefresh(); }}
                 className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
                            text-gray-400 hover:text-indigo-500 transition-all"
                 aria-label="Refresh data now"
-                title="Refresh now"
+                title="Refresh & reset sort"
               >
                 <RefreshCw size={14} />
               </button>
@@ -178,61 +182,46 @@ const CoinTable = React.memo(function CoinTable({
         </div>
       </div>
 
-      {/* Scrollable table container */}
+      {/* Scrollable table container — horizontal scroll shows all columns, Name stays frozen */}
       <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-        <table className="w-full min-w-[600px]">
-          {/* Sticky header */}
-          <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-surface-800 shadow-sm">
+        <table className="w-full" style={{ minWidth: '1050px' }}>
+          {/* Sticky header (top) */}
+          <thead className="sticky top-0 z-20 bg-gray-50 dark:bg-surface-800 shadow-sm">
             <tr>
-              <th className="py-3 px-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">
+              {/* Sticky: Star */}
+              <th className="py-3 px-2 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 w-[40px]
+                             sticky left-0 z-[21] bg-gray-50 dark:bg-surface-800">
+              </th>
+              {/* Sticky: # */}
+              <th className="py-3 px-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[44px]
+                             sticky left-[40px] z-[21] bg-gray-50 dark:bg-surface-800">
                 #
               </th>
-              <th className="py-3 px-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Name
+              {/* Sticky: Coin */}
+              <th className="py-3 px-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider
+                             sticky left-[84px] z-[21] bg-gray-50 dark:bg-surface-800">
+                Coin
               </th>
 
-              {/* Sortable: Price */}
-              <th
-                className={sortableThClass}
-                onClick={() => handleSort('price')}
-              >
-                <span className="inline-flex items-center justify-end">
-                  Price {renderSortIcon('price')}
-                </span>
+              <th className={sortableThClass} onClick={() => handleSort('price')}>
+                Price{renderSortIcon('price')}
               </th>
-
-              <th className="py-3 px-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">
-                1h %
+              <th className={sortableThClass} onClick={() => handleSort('change1h')}>
+                1h{renderSortIcon('change1h')}
               </th>
-
-              {/* Sortable: 24h % */}
-              <th
-                className={`${sortableThClass} hidden md:table-cell`}
-                onClick={() => handleSort('change24h')}
-              >
-                <span className="inline-flex items-center justify-end">
-                  24h % {renderSortIcon('change24h')}
-                </span>
+              <th className={sortableThClass} onClick={() => handleSort('change24h')}>
+                24h{renderSortIcon('change24h')}
               </th>
-
-              <th className="py-3 px-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">
-                7d %
+              <th className={sortableThClass} onClick={() => handleSort('change7d')}>
+                7d{renderSortIcon('change7d')}
               </th>
-
-              {/* Sortable: Market Cap */}
-              <th
-                className={`${sortableThClass} hidden lg:table-cell`}
-                onClick={() => handleSort('marketCap')}
-              >
-                <span className="inline-flex items-center justify-end">
-                  Market Cap {renderSortIcon('marketCap')}
-                </span>
+              <th className={sortableThClass} onClick={() => handleSort('volume')}>
+                24h Volume{renderSortIcon('volume')}
               </th>
-
-              <th className="py-3 px-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
-                Volume (24h)
+              <th className={sortableThClass} onClick={() => handleSort('marketCap')}>
+                Market Cap{renderSortIcon('marketCap')}
               </th>
-              <th className="py-3 px-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">
+              <th className="py-3 px-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                 Last 7 Days
               </th>
             </tr>
@@ -245,6 +234,8 @@ const CoinTable = React.memo(function CoinTable({
                 coin={coin}
                 currency={currency}
                 onSelect={onSelectCoin}
+                isWatchlisted={isWatchlisted?.(coin.id)}
+                onToggleWatchlist={onToggleWatchlist}
               />
             ))}
           </tbody>
@@ -293,10 +284,10 @@ const CoinTable = React.memo(function CoinTable({
       <div className="px-4 md:px-6 py-3 border-t border-gray-100 dark:border-gray-800/50">
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Showing {sortedCoins.length} cryptocurrencies
-          {sortKey && (
+          {sort.key && (
             <span> • Sorted by <span className="font-medium text-gray-700 dark:text-gray-300">
-              {sortKey === 'price' ? 'Price' : sortKey === 'change24h' ? '24h Change' : 'Market Cap'}
-            </span> ({sortDirection === 'asc' ? 'low → high' : 'high → low'})</span>
+              {{ price: 'Price', change1h: '1h Change', change24h: '24h Change', change7d: '7d Change', volume: '24h Volume', marketCap: 'Market Cap' }[sort.key]}
+            </span> ({sort.dir === 'asc' ? 'low → high' : 'high → low'})</span>
           )}
         </p>
       </div>
