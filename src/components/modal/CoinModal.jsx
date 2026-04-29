@@ -1,7 +1,179 @@
-import React, { useEffect, useCallback } from 'react';
-import { X, TrendingUp, TrendingDown, Crown, BarChart3, Coins, Activity } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { fetchCoinDetail } from '../../services/api';
+import { X, TrendingUp, TrendingDown, Crown, BarChart3, Coins, Activity, Info, Globe, ExternalLink } from 'lucide-react';
 import PriceChart from './PriceChart';
 import { formatCurrency, formatLargeNumber, formatPercentage, formatFullDate } from '../../utils/formatters';
+
+/**
+ * Curated descriptions for popular cryptocurrencies.
+ * These provide users context about what each project does.
+ */
+const coinDescriptions = {
+  bitcoin: {
+    description: "Bitcoin is the first and most well-known cryptocurrency, created in 2009 by the pseudonymous Satoshi Nakamoto. It operates on a decentralized peer-to-peer network using blockchain technology, enabling secure transactions without intermediaries. Bitcoin uses a Proof-of-Work consensus mechanism and has a hard cap of 21 million coins, making it inherently deflationary.",
+    category: "Store of Value / Digital Gold",
+    consensus: "Proof of Work (PoW)",
+    launchYear: 2009,
+    website: "https://bitcoin.org",
+  },
+  ethereum: {
+    description: "Ethereum is a decentralized, open-source blockchain platform that enables smart contracts and decentralized applications (dApps). Founded by Vitalik Buterin in 2015, it introduced programmable blockchain technology. Ethereum transitioned to Proof-of-Stake with 'The Merge' in 2022, significantly reducing energy consumption.",
+    category: "Smart Contract Platform",
+    consensus: "Proof of Stake (PoS)",
+    launchYear: 2015,
+    website: "https://ethereum.org",
+  },
+  tether: {
+    description: "Tether (USDT) is the largest stablecoin by market capitalization, pegged 1:1 to the US Dollar. It provides traders and investors a way to hold a stable-value digital asset on the blockchain without converting back to fiat currency. Tether is widely used for trading pairs across major exchanges.",
+    category: "Stablecoin",
+    consensus: "N/A (Token)",
+    launchYear: 2014,
+    website: "https://tether.to",
+  },
+  binancecoin: {
+    description: "BNB is the native cryptocurrency of the BNB Chain ecosystem, originally launched as Binance Coin for the Binance exchange. It's used for trading fee discounts, transaction fees on BNB Chain, and participating in token sales. BNB employs a quarterly token burn mechanism to reduce total supply over time.",
+    category: "Exchange / Ecosystem Token",
+    consensus: "Proof of Staked Authority (PoSA)",
+    launchYear: 2017,
+    website: "https://www.bnbchain.org",
+  },
+  solana: {
+    description: "Solana is a high-performance blockchain known for its exceptional speed and low transaction costs. It uses a unique Proof-of-History (PoH) consensus combined with Proof-of-Stake, enabling processing of thousands of transactions per second. Solana has become a popular platform for DeFi, NFTs, and Web3 applications.",
+    category: "Smart Contract Platform",
+    consensus: "Proof of History (PoH) + PoS",
+    launchYear: 2020,
+    website: "https://solana.com",
+  },
+  ripple: {
+    description: "XRP is the native digital asset of the XRP Ledger, designed for fast, low-cost international money transfers. Created by Ripple Labs, it aims to bridge traditional financial systems with blockchain technology. XRP transactions settle in 3-5 seconds with minimal fees.",
+    category: "Payments / Cross-border Transfers",
+    consensus: "XRP Ledger Consensus Protocol",
+    launchYear: 2012,
+    website: "https://ripple.com",
+  },
+  'usd-coin': {
+    description: "USD Coin (USDC) is a fully-reserved stablecoin pegged to the US Dollar, issued by Circle and Coinbase. Each USDC is backed by $1 held in reserve, with regular attestations from independent accounting firms. It's widely used in DeFi protocols and as a stable trading pair.",
+    category: "Stablecoin",
+    consensus: "N/A (Token)",
+    launchYear: 2018,
+    website: "https://www.circle.com",
+  },
+  cardano: {
+    description: "Cardano is a proof-of-stake blockchain platform founded by Charles Hoskinson, an Ethereum co-founder. It's built through peer-reviewed research and evidence-based methods, emphasizing sustainability, scalability, and transparency. Cardano supports smart contracts through its Plutus platform.",
+    category: "Smart Contract Platform",
+    consensus: "Ouroboros Proof of Stake",
+    launchYear: 2017,
+    website: "https://cardano.org",
+  },
+  dogecoin: {
+    description: "Dogecoin started as a lighthearted cryptocurrency in 2013, featuring the Shiba Inu meme as its mascot. Despite its humorous origins, it has grown into a widely-used digital currency with a strong community. Dogecoin has no maximum supply and is popular for tipping and charitable donations.",
+    category: "Meme / Payment Currency",
+    consensus: "Proof of Work (Scrypt)",
+    launchYear: 2013,
+    website: "https://dogecoin.com",
+  },
+  'staked-ether': {
+    description: "Lido Staked Ether (stETH) is a liquid staking token representing staked ETH on the Ethereum Beacon Chain through Lido Finance. It allows users to earn staking rewards while maintaining liquidity, as stETH can be used in DeFi protocols while the underlying ETH continues to accrue staking rewards.",
+    category: "Liquid Staking Derivative",
+    consensus: "N/A (Token)",
+    launchYear: 2020,
+    website: "https://lido.fi",
+  },
+  polkadot: {
+    description: "Polkadot is a multi-chain protocol that enables different blockchains to interoperate and share security. Created by Ethereum co-founder Gavin Wood, it uses a relay chain architecture with parachains to achieve scalability and cross-chain communication.",
+    category: "Interoperability / Multi-chain",
+    consensus: "Nominated Proof of Stake (NPoS)",
+    launchYear: 2020,
+    website: "https://polkadot.network",
+  },
+  avalanche: {
+    description: "Avalanche is a blazingly fast, low-cost platform for building decentralized applications. It uses a novel consensus protocol that achieves near-instant finality. Avalanche supports multiple subnets, allowing developers to create customized blockchain networks.",
+    category: "Smart Contract Platform",
+    consensus: "Avalanche Consensus",
+    launchYear: 2020,
+    website: "https://www.avax.network",
+  },
+  chainlink: {
+    description: "Chainlink is a decentralized oracle network that provides real-world data to smart contracts on the blockchain. It acts as a bridge between blockchain applications and external data sources, APIs, and payment systems, enabling smart contracts to interact with off-chain data securely.",
+    category: "Oracle Network",
+    consensus: "N/A (Token)",
+    launchYear: 2017,
+    website: "https://chain.link",
+  },
+  'matic-network': {
+    description: "Polygon (formerly Matic Network) is a Layer 2 scaling solution for Ethereum that provides faster and cheaper transactions. It uses a combination of Plasma framework and Proof-of-Stake sidechains to achieve high throughput while maintaining Ethereum's security.",
+    category: "Layer 2 / Scaling Solution",
+    consensus: "Proof of Stake (PoS)",
+    launchYear: 2017,
+    website: "https://polygon.technology",
+  },
+  litecoin: {
+    description: "Litecoin is a peer-to-peer cryptocurrency created by Charlie Lee in 2011 as a 'lighter' version of Bitcoin. It features faster block generation times (2.5 minutes vs Bitcoin's 10) and uses the Scrypt hashing algorithm, making it suitable for everyday transactions.",
+    category: "Payment Currency",
+    consensus: "Proof of Work (Scrypt)",
+    launchYear: 2011,
+    website: "https://litecoin.org",
+  },
+  tron: {
+    description: "TRON is a blockchain-based platform focused on decentralizing the internet and building a free, global digital content entertainment system. It supports smart contracts, DeFi applications, and is one of the largest networks for USDT (Tether) transfers due to its low fees.",
+    category: "Smart Contract Platform",
+    consensus: "Delegated Proof of Stake (DPoS)",
+    launchYear: 2017,
+    website: "https://tron.network",
+  },
+  uniswap: {
+    description: "Uniswap is the leading decentralized exchange (DEX) protocol built on Ethereum. It pioneered the Automated Market Maker (AMM) model, allowing anyone to swap tokens or provide liquidity without intermediaries. UNI is the governance token for the Uniswap protocol.",
+    category: "Decentralized Exchange (DEX)",
+    consensus: "N/A (Token)",
+    launchYear: 2018,
+    website: "https://uniswap.org",
+  },
+  'shiba-inu': {
+    description: "Shiba Inu is an Ethereum-based meme token that has evolved into a vibrant ecosystem. Dubbed the 'Dogecoin Killer', it features its own DEX (ShibaSwap), NFT collection, and is developing Shibarium, a Layer 2 solution. SHIB has one of the largest and most active communities in crypto.",
+    category: "Meme / Ecosystem Token",
+    consensus: "N/A (ERC-20 Token)",
+    launchYear: 2020,
+    website: "https://shibatoken.com",
+  },
+  cosmos: {
+    description: "Cosmos is an ecosystem of interconnected blockchains designed to solve blockchain interoperability. Its Inter-Blockchain Communication (IBC) protocol enables seamless data and value transfer between independent chains. ATOM is the native staking and governance token.",
+    category: "Interoperability / Multi-chain",
+    consensus: "Tendermint BFT + PoS",
+    launchYear: 2019,
+    website: "https://cosmos.network",
+  },
+  stellar: {
+    description: "Stellar is an open-source payment network designed for fast, low-cost cross-border transactions. Founded by Jed McCaleb (Ripple co-founder), it focuses on connecting financial institutions and reducing the cost of money transfers, particularly for the unbanked population.",
+    category: "Payments / Cross-border Transfers",
+    consensus: "Stellar Consensus Protocol (SCP)",
+    launchYear: 2014,
+    website: "https://stellar.org",
+  },
+};
+
+/**
+ * Generate a description for coins not in the curated list
+ */
+function getCoinDescription(coin) {
+  const curated = coinDescriptions[coin.id];
+  if (curated) return curated;
+
+  // Generate a generic but informative description
+  const rankText = coin.market_cap_rank ? `Ranked #${coin.market_cap_rank} by market capitalization` : 'A cryptocurrency';
+  const supplyText = coin.max_supply
+    ? `It has a maximum supply of ${coin.max_supply.toLocaleString()} ${coin.symbol?.toUpperCase()} coins`
+    : coin.total_supply
+      ? `It has a total supply of ${coin.total_supply.toLocaleString()} ${coin.symbol?.toUpperCase()} coins`
+      : '';
+
+  return {
+    description: `${rankText}, ${coin.name} (${coin.symbol?.toUpperCase()}) is a digital asset in the cryptocurrency market. ${supplyText ? supplyText + '.' : ''} As with all cryptocurrencies, its value is determined by market supply and demand dynamics.`,
+    category: null,
+    consensus: null,
+    launchYear: null,
+    website: null,
+  };
+}
 
 /**
  * CoinModal Component
@@ -16,8 +188,12 @@ import { formatCurrency, formatLargeNumber, formatPercentage, formatFullDate } f
  * - ATH & ATL dates clearly displayed
  * - Fully diluted valuation
  * - Volume/Market Cap ratio
+ * - About section with coin descriptions
  */
 const CoinModal = React.memo(function CoinModal({ coin, currency, onClose }) {
+  // --- Coin detail data (fetched from /coins/{id} for homepage, description, etc.) ---
+  const [coinDetail, setCoinDetail] = useState(null);
+
   // Close on Escape key press
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -31,6 +207,17 @@ const CoinModal = React.memo(function CoinModal({ coin, currency, onClose }) {
       document.body.style.overflow = '';
     };
   }, [onClose]);
+
+  // Fetch detailed coin data (homepage link, description, etc.)
+  useEffect(() => {
+    if (!coin?.id) return;
+    setCoinDetail(null);
+    let cancelled = false;
+    fetchCoinDetail(coin.id)
+      .then((data) => { if (!cancelled) setCoinDetail(data); })
+      .catch(() => { /* silently fail — curated data is the fallback */ });
+    return () => { cancelled = true; };
+  }, [coin?.id]);
 
   // Prevent click inside modal from closing it
   const handleModalClick = useCallback((e) => {
@@ -59,6 +246,20 @@ const CoinModal = React.memo(function CoinModal({ coin, currency, onClose }) {
   const volMcapRatio = coin.market_cap > 0
     ? ((coin.total_volume / coin.market_cap) * 100).toFixed(2)
     : null;
+
+  // Get coin description info (curated first, then API fallback)
+  const coinInfo = getCoinDescription(coin);
+
+  // Live website URL: prefer API data, fall back to curated
+  const websiteUrl = coinDetail?.links?.homepage?.find(u => u) || coinInfo.website;
+
+  // Live description: use API if available and no curated description, or if curated is generic
+  const liveDescription = coinDetail?.description?.en;
+  const displayDescription = coinDescriptions[coin.id]
+    ? coinInfo.description
+    : (liveDescription
+        ? liveDescription.replace(/<[^>]*>/g, '').slice(0, 500) + (liveDescription.length > 500 ? '…' : '')
+        : coinInfo.description);
 
   return (
     <div
@@ -183,7 +384,57 @@ const CoinModal = React.memo(function CoinModal({ coin, currency, onClose }) {
             })}
           </div>
 
-          {/* 24h High / Low Bar */}
+          {/* About Section */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Info size={14} className="text-indigo-500" />
+              About {coin.name}
+            </h3>
+            <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-900/30">
+              <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                {displayDescription}
+              </p>
+              
+              {/* Metadata tags */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {(coinDetail?.categories?.[0] || coinInfo.category) && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                    📂 {coinDetail?.categories?.[0] || coinInfo.category}
+                  </span>
+                )}
+                {coinInfo.consensus && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                    ⛓️ {coinInfo.consensus}
+                  </span>
+                )}
+                {(coinDetail?.genesis_date || coinInfo.launchYear) && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                    🚀 {coinInfo.launchYear ? `Launched ${coinInfo.launchYear}` : `Genesis ${coinDetail.genesis_date}`}
+                  </span>
+                )}
+              </div>
+
+              {/* Official Website link */}
+              {websiteUrl ? (
+                <a
+                  href={websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 text-[11px] font-semibold rounded-lg
+                             bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm"
+                >
+                  <Globe size={12} />
+                  Official Website
+                  <ExternalLink size={10} />
+                </a>
+              ) : !coinDetail && (
+                <div className="mt-3 flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">
+                  <div className="w-3 h-3 rounded-full border-2 border-gray-300 dark:border-gray-600 border-t-transparent animate-spin" />
+                  Loading website info…
+                </div>
+              )}
+            </div>
+          </div>
           <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
               <span>24h Low</span>

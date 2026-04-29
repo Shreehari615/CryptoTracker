@@ -10,7 +10,7 @@ import { formatCurrency, formatPercentage } from '../../utils/formatters';
  * 
  * Derived from the main coins data — no additional API calls needed.
  */
-const GainersLosers = React.memo(function GainersLosers({ coins, currency }) {
+const GainersLosers = React.memo(function GainersLosers({ coins, currency, onSelectCoin }) {
   // Compute top gainers and losers from the full coin list
   const { gainers, losers } = useMemo(() => {
     if (!coins || coins.length === 0) return { gainers: [], losers: [] };
@@ -48,6 +48,7 @@ const GainersLosers = React.memo(function GainersLosers({ coins, currency }) {
               coin={coin}
               currency={currency}
               type="gainer"
+              onSelect={onSelectCoin}
             />
           ))}
         </div>
@@ -66,6 +67,7 @@ const GainersLosers = React.memo(function GainersLosers({ coins, currency }) {
               coin={coin}
               currency={currency}
               type="loser"
+              onSelect={onSelectCoin}
             />
           ))}
         </div>
@@ -77,12 +79,15 @@ const GainersLosers = React.memo(function GainersLosers({ coins, currency }) {
 /**
  * CoinMiniCard — compact card for gainers/losers list items
  */
-const CoinMiniCard = React.memo(function CoinMiniCard({ coin, currency, type }) {
+const CoinMiniCard = React.memo(function CoinMiniCard({ coin, currency, type, onSelect }) {
   const change = coin.price_change_percentage_24h_in_currency;
   const isPositive = change >= 0;
 
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+    <div
+      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+      onClick={() => onSelect?.(coin)}
+    >
       {/* Rank + Logo */}
       <img
         src={coin.image}

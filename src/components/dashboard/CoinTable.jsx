@@ -100,7 +100,8 @@ const CoinTable = React.memo(function CoinTable({
   // --- Sort Icon Helper (active = inline, inactive = absolute so no space taken) ---
   const renderSortIcon = (key) => {
     if (sort.key !== key) {
-      return null; // No icon when not sorting — hover effect handled by CSS
+      // Show muted up-down arrow to indicate sortability
+      return <ArrowUpDown size={12} className="inline-block text-gray-400 dark:text-gray-600 ml-1 align-middle opacity-60 group-hover/th:opacity-100 transition-opacity" />;
     }
     return sort.dir === 'asc'
       ? <ArrowUp size={12} className="inline-block text-indigo-500 ml-1 align-middle" />

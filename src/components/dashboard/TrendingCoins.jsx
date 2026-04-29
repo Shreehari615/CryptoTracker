@@ -8,7 +8,7 @@ import { CardSkeleton } from '../common/Skeleton';
  * Data sourced from CoinGecko's /search/trending endpoint.
  * Each card shows rank, logo, name, symbol, and market cap rank.
  */
-const TrendingCoins = React.memo(function TrendingCoins({ trending, loading }) {
+const TrendingCoins = React.memo(function TrendingCoins({ trending, loading, onSelectCoin, coins }) {
   if (loading) {
     return (
       <div>
@@ -38,6 +38,27 @@ const TrendingCoins = React.memo(function TrendingCoins({ trending, loading }) {
                        hover:border-indigo-300 dark:hover:border-indigo-600
                        hover:shadow-lg hover:shadow-indigo-500/5
                        transition-all duration-200 cursor-pointer group"
+            onClick={() => {
+              // Find full coin data from market coins list
+              const fullCoin = coins?.find(c => c.id === coin.id);
+              if (fullCoin) {
+                onSelectCoin?.(fullCoin);
+              } else {
+                // Coin not in top 100 — build a minimal object from trending data
+                onSelectCoin?.({
+                  id: coin.id,
+                  name: coin.name,
+                  symbol: coin.symbol,
+                  image: coin.large || coin.small || coin.thumb,
+                  market_cap_rank: coin.market_cap_rank,
+                  current_price: coin.data?.price,
+                  price_change_percentage_24h_in_currency: coin.data?.price_change_percentage_24h?.usd,
+                  market_cap: coin.data?.market_cap ? parseFloat(String(coin.data.market_cap).replace(/[^0-9.]/g, '')) : null,
+                  total_volume: coin.data?.total_volume ? parseFloat(String(coin.data.total_volume).replace(/[^0-9.]/g, '')) : null,
+                  sparkline_in_7d: coin.data?.sparkline ? { price: coin.data.sparkline } : null,
+                });
+              }
+            }}
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="relative">

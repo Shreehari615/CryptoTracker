@@ -18,9 +18,11 @@ A production-grade cryptocurrency market dashboard built with **React 18**, **Vi
 - **Global Market Stats Bar** — Coins, Exchanges, Market Cap, 24h Volume, BTC/ETH Dominance
 
 ### Dashboard Widgets
-- **🔥 Trending Coins** — Top trending cryptocurrencies (last 24h)
-- **🚀 Top Gainers** — 5 best performers by 24h change
-- **📉 Top Losers** — 5 worst performers by 24h change
+- **🔥 Trending Coins** — Top trending cryptocurrencies (last 24h), **clickable** to open detail view
+- **🚀 Top Gainers** — 5 best performers by 24h change, **clickable** to open detail view
+- **📉 Top Losers** — 5 worst performers by 24h change, **clickable** to open detail view
+
+> All widget cards open the same rich detail modal as the main market table — including coins ranked above #100 (data constructed from the trending API when not in the top 100 market list).
 
 ### Data Table
 CoinGecko-style market table with sortable columns:
@@ -32,6 +34,7 @@ CoinGecko-style market table with sortable columns:
 - 7-day Sparkline Chart
 - Long coin names wrap naturally (no truncation)
 - Sticky columns (Star, Rank, Coin) on horizontal scroll
+- **Sort indicators always visible** — All sortable columns show ↕ arrows by default, active sort shown with ↑/↓
 
 ### ⭐ Watchlist
 - **Add/Remove coins** — Click the star icon on any coin to watchlist it
@@ -72,11 +75,18 @@ A suite of crypto financial calculators accessible via the "Tools" tab:
 - Demonstrates the power of DCA over lump-sum investing
 
 ### Coin Detail Modal
-Click any coin to view:
+Click any coin (from market table, trending cards, gainers, or losers) to view:
 - Current price with 24h change badge
+- 1h / 24h / 7d price change badges with icons
+- **📖 About Section** — Curated descriptions for top 20 cryptocurrencies + live descriptions from CoinGecko API for all other coins
+  - Category tag (e.g. Smart Contract Platform, Stablecoin)
+  - Consensus mechanism (e.g. Proof of Work, Proof of Stake)
+  - Launch year / Genesis date
+  - **🌐 Official Website link** — Fetched dynamically from CoinGecko `/coins/{id}` endpoint for every coin
 - 24h High/Low with visual position bar
-- Market Cap, Volume, Circulating/Total/Max Supply
-- All-Time High / All-Time Low with dates
+- Market Cap, Volume, Volume/Market Cap ratio, Fully Diluted Valuation
+- Circulating/Total/Max Supply with progress bar
+- All-Time High / All-Time Low with dates and percentage distance
 - Interactive price chart with 7D / 30D / 90D toggles
 - X/Y axis with formatted values and hover tooltip
 
@@ -114,7 +124,7 @@ src/
 │   ├── common/           # Reusable: Skeleton, ErrorState, SearchBar, ThemeToggle
 │   ├── dashboard/        # GlobalStatsBar, CoinTable, CoinTableRow, SparklineChart,
 │   │                     # TrendingCoins, GainersLosers
-│   ├── modal/            # CoinModal, PriceChart
+│   ├── modal/            # CoinModal (with About section), PriceChart
 │   └── tools/            # ToolsSection, CryptoConverter, CoinComparison,
 │                         # ProfitCalculator, InvestmentProjection, SIPCalculator
 ├── context/
@@ -126,7 +136,7 @@ src/
 │   ├── useCoinChart.js    # Historical chart data
 │   └── useWatchlist.js    # Watchlist with localStorage persistence
 ├── services/
-│   └── api.js             # Centralized CoinGecko API calls
+│   └── api.js             # Centralized CoinGecko API calls (5 endpoints)
 ├── utils/
 │   └── formatters.js      # Currency, number, date formatters
 ├── App.jsx                # Root component + tab navigation + layout
@@ -178,6 +188,7 @@ npm run preview
 | Lazy Image Loading | `loading="lazy"` on all coin logos |
 | Proper Keys | `coin.id` used as keys throughout |
 | Tab-based Rendering | Only active tab content is rendered |
+| Cancelled Fetches | Coin detail API calls cancelled on modal close |
 
 ---
 
@@ -191,6 +202,7 @@ All data comes from the [CoinGecko Free API](https://www.coingecko.com/en/api):
 | `/global` | Total market cap, volume, dominance |
 | `/search/trending` | Trending coins (last 24h) |
 | `/coins/{id}/market_chart` | Historical price data for charts |
+| `/coins/{id}` | Detailed coin info (homepage, description, categories, genesis date) |
 
 **Rate Limits:** 30 calls/minute, 10,000 calls/month (free tier)
 

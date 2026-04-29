@@ -153,8 +153,8 @@ function Dashboard() {
         {/* Market Tab */}
         {activeTab === 'market' && (
           <>
-            <TrendingCoins trending={trending} loading={trendingLoading} />
-            <GainersLosers coins={coins} currency={currency} />
+            <TrendingCoins trending={trending} loading={trendingLoading} onSelectCoin={handleSelectCoin} coins={coins} />
+            <GainersLosers coins={coins} currency={currency} onSelectCoin={handleSelectCoin} />
             <CoinTable
               coins={filteredCoins}
               loading={coinsLoading}

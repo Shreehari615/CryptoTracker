@@ -95,11 +95,10 @@ const SIPCalculator = React.memo(function SIPCalculator({ coins, currency }) {
           <div className="flex flex-wrap gap-1.5">
             {durations.map((d) => (
               <button key={d.value} onClick={() => setDurationMonths(d.value)}
-                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  durationMonths === d.value
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}>
+                className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${durationMonths === d.value
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}>
                 {d.label}
               </button>
             ))}

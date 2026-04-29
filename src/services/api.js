@@ -115,3 +115,17 @@ export async function fetchCoinChart(coinId, currency = 'usd', days = 7) {
     days: days,
   });
 }
+
+/**
+ * Fetch detailed coin data (includes homepage, description, links, etc.)
+ */
+export async function fetchCoinDetail(coinId) {
+  return fetchFromAPI(`/coins/${coinId}`, {
+    localization: false,
+    tickers: false,
+    market_data: false,
+    community_data: false,
+    developer_data: false,
+    sparkline: false,
+  });
+}
