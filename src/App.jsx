@@ -4,7 +4,9 @@ import { useCoinsMarket } from './hooks/useCoinsMarket';
 import { useGlobalData } from './hooks/useGlobalData';
 import { useTrending } from './hooks/useTrending';
 import { useWatchlist } from './hooks/useWatchlist';
-import { BarChart3, Star, Wrench } from 'lucide-react';
+import { useFearGreed } from './hooks/useFearGreed';
+import { usePortfolio } from './hooks/usePortfolio';
+import { BarChart3, Star, Wrench, Briefcase } from 'lucide-react';
 
 // Components
 import GlobalStatsBar from './components/dashboard/GlobalStatsBar';
@@ -15,6 +17,9 @@ import GainersLosers from './components/dashboard/GainersLosers';
 import CoinTable from './components/dashboard/CoinTable';
 import CoinModal from './components/modal/CoinModal';
 import ToolsSection from './components/tools/ToolsSection';
+import FearGreedIndex from './components/dashboard/FearGreedIndex';
+
+import PortfolioTracker from './components/portfolio/PortfolioTracker';
 
 function App() {
   return (
@@ -29,13 +34,15 @@ function Dashboard() {
   const [currency, setCurrency] = useState('usd');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCoin, setSelectedCoin] = useState(null);
-  const [activeTab, setActiveTab] = useState('market'); // 'market' | 'watchlist' | 'tools'
+  const [activeTab, setActiveTab] = useState('market'); // 'market' | 'watchlist' | 'portfolio' | 'tools'
 
   // --- Data Fetching ---
   const { coins, loading: coinsLoading, error: coinsError, lastUpdated, refresh } = useCoinsMarket(currency);
   const { globalData, loading: globalLoading } = useGlobalData();
   const { trending, loading: trendingLoading } = useTrending();
   const { watchlist, toggleWatchlist, isWatchlisted } = useWatchlist();
+  const { data: fearGreedData, loading: fearGreedLoading } = useFearGreed();
+  const { portfolio, addEntry, removeEntry, clearPortfolio, stats: portfolioStats } = usePortfolio(coins);
 
   // --- Filtered Coins ---
   const filteredCoins = useMemo(() => {
@@ -72,6 +79,7 @@ function Dashboard() {
   const tabs = [
     { id: 'market', label: 'Market', icon: <BarChart3 size={14} /> },
     { id: 'watchlist', label: 'Watchlist', icon: <Star size={14} />, count: watchlist.length },
+    { id: 'portfolio', label: 'Portfolio', icon: <Briefcase size={14} />, count: portfolio.length },
     { id: 'tools', label: 'Tools', icon: <Wrench size={14} /> },
   ];
 
@@ -153,8 +161,20 @@ function Dashboard() {
         {/* Market Tab */}
         {activeTab === 'market' && (
           <>
-            <TrendingCoins trending={trending} loading={trendingLoading} onSelectCoin={handleSelectCoin} coins={coins} />
+            {/* Trending + Fear & Greed Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+              <div className="lg:col-span-3">
+                <TrendingCoins trending={trending} loading={trendingLoading} onSelectCoin={handleSelectCoin} coins={coins} />
+              </div>
+              <div className="lg:col-span-1">
+                <FearGreedIndex data={fearGreedData} loading={fearGreedLoading} />
+              </div>
+            </div>
+
             <GainersLosers coins={coins} currency={currency} onSelectCoin={handleSelectCoin} />
+
+
+
             <CoinTable
               coins={filteredCoins}
               loading={coinsLoading}
@@ -204,6 +224,19 @@ function Dashboard() {
               />
             )}
           </>
+        )}
+
+        {/* Portfolio Tab */}
+        {activeTab === 'portfolio' && (
+          <PortfolioTracker
+            coins={coins}
+            currency={currency}
+            portfolio={portfolio}
+            addEntry={addEntry}
+            removeEntry={removeEntry}
+            clearPortfolio={clearPortfolio}
+            stats={portfolioStats}
+          />
         )}
 
         {/* Tools Tab */}
